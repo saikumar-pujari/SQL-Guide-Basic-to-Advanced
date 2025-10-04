@@ -762,3 +762,71 @@ Date and time functions extract or manipulate date/time values.
   ```
 
 ---
+
+## Date Formatting and Conversion in SQL
+
+You can change date formats and convert between data types using built-in SQL functions.
+
+### 1. FORMAT: Change the display format of a date
+
+```sql
+-- Format a date as 'Day ddd MMM Q<quarter> yyyy hh:mm:ss tt'
+select creationtime,
+       'Day ' + format(creationtime, 'ddd MMM') +
+       ' Q' + datename(quarter, creationtime) +
+       format(creationtime, ' yyyy hh:mm:ss tt') as formatted_date
+from sales.orders;
+```
+
+### 2. CONVERT: Convert between data types (e.g., string to int, datetime to date)
+
+```sql
+-- Convert string to int, datetime to date, and extract year part
+select convert(int, '123') as as_integer,
+       convert(date, creationtime) as as_date,
+       datepart(year, creationtime) as year_part
+from sales.orders;
+```
+
+### 3. CAST: Change one data type to another
+
+```sql
+-- Cast integer to varchar, datetime to date
+select cast(145 as varchar) as as_text,
+       cast(creationtime as date) as as_date
+from sales.orders;
+```
+
+### 4. DATEADD: Add intervals to a date
+
+```sql
+-- Add years, months, or days to a date
+select orderdate,
+       dateadd(year, 2, orderdate) as plus_2_years,
+       dateadd(month, 2, orderdate) as plus_2_months,
+       dateadd(day, 2, orderdate) as plus_2_days
+from sales.orders;
+```
+
+### 5. DATEDIFF: Calculate the difference between two dates
+
+```sql
+-- Number of days between orderdate and shipdate
+select orderdate, shipdate,
+       datediff(day, orderdate, shipdate) as days_between
+from sales.orders;
+```
+
+### 6. GETDATE: Get the current date and time
+
+```sql
+select getdate() as current_datetime;
+```
+
+### 7. ISDATE: Check if a value is a valid date
+
+```sql
+-- Returns 1 if valid date, 0 otherwise
+select isdate('2024-06-01') as is_valid_date;
+select isdate('not-a-date') as is_valid_date;
+```

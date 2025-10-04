@@ -1,0 +1,30 @@
+name: Sync SQL Guide to README
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "SQL-from-Basic-to-Expert.md"
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy SQL guide into README
+        run: |
+          cat SQL-from-Basic-to-Expert.md > README.md
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add README.md
+          git commit -m "Auto-update README from SQL guide" || echo "No changes to commit"
+          git push

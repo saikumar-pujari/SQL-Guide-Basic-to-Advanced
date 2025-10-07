@@ -1573,3 +1573,158 @@ WHERE 1 < (
 | Table        | FROM       | `FROM (SELECT ...) AS d`                             | Multiple rows/columns             |
 | Correlated   | WHERE      | `WHERE EXISTS (SELECT ... WHERE o.id = c.id)`        | Depends on outer query            |
 | Non-Correlated | WHERE    | `WHERE id IN (SELECT id FROM ...)`                   | Independent of outer query        |
+
+
+--CTE(common table expression)
+--temporpary table which can be used only in the main query only
+-- the execution order is first CTE then the main query
+--its like virtual table and can be used many times unlike sub-queries
+--with fuckname as(select * from sales.database)
+--standalone cte,multiple cte,nested cte are non-recursive cte 
+--recursice cte are 
+with series as(
+select 1 as mynumber union all select mynumber+1 from series where mynumber<10
+)
+select *,count(*) over() from series option (maxrecursion 1000)
+
+# Common Table Expressions (CTE) in SQL
+
+A **Common Table Expression (CTE)** is a temporary result set (like a virtual table) that you can reference within a SELECT, INSERT, UPDATE, or DELETE statement. CTEs make complex queries easier to read and maintain.
+
+## Key Points
+
+- **Scope:** CTEs exist only for the duration of the main query.
+- **Execution Order:** The CTE is evaluated first, then the main query runs using its result.
+- **Reusability:** You can reference a CTE multiple times in the main query (unlike subqueries).
+- **Syntax:**  
+  ```sql
+  WITH cte_name AS (
+      -- your query here
+      SELECT ...
+  )
+  SELECT ... FROM cte_name;
+  ```
+
+---
+
+## Types of CTEs
+
+### 1. Standalone (Single) CTE
+
+A single CTE used in a query.
+
+**Example:**  
+Get all products with price above average.
+
+```sql
+WITH expensive_products AS (
+    SELECT productid, price
+    FROM sales.products
+    WHERE price > (SELECT AVG(price) FROM sales.products)
+)
+SELECT * FROM expensive_products;
+```
+**Explanation:**  
+- The CTE `expensive_products` selects products with price above average.
+- The main query selects all rows from the CTE.
+
+---
+
+### 2. Multiple CTEs
+
+You can define more than one CTE by separating them with commas.
+
+**Example:**  
+Get customers and their total orders.
+
+```sql
+WITH customer_orders AS (
+    SELECT customerid, COUNT(*) AS total_orders
+    FROM sales.orders
+    GROUP BY customerid
+),
+high_value_customers AS (
+    SELECT customerid
+    FROM customer_orders
+    WHERE total_orders > 5
+)
+SELECT c.customerid, c.firstname
+FROM sales.customers c
+JOIN high_value_customers hvc ON c.customerid = hvc.customerid;
+```
+**Explanation:**  
+- `customer_orders` calculates total orders per customer.
+- `high_value_customers` filters customers with more than 5 orders.
+- The final query joins customers with high-value customers.
+
+---
+
+### 3. Nested CTEs
+
+A CTE can reference another CTE defined earlier.
+
+**Example:**  
+Find products above average price, then get their sales.
+
+```sql
+WITH avg_price_cte AS (
+    SELECT AVG(price) AS avg_price FROM sales.products
+),
+expensive_products AS (
+    SELECT productid, price
+    FROM sales.products, avg_price_cte
+    WHERE sales.products.price > avg_price_cte.avg_price
+)
+SELECT * FROM expensive_products;
+```
+**Explanation:**  
+- `avg_price_cte` calculates the average price.
+- `expensive_products` uses that value to filter products.
+
+---
+
+### 4. Recursive CTEs
+
+Recursive CTEs repeatedly reference themselves to produce a sequence or hierarchy.
+
+**Example:**  
+Generate a series of numbers from 1 to 10.
+
+```sql
+WITH series AS (
+    SELECT 1 AS mynumber
+    UNION ALL
+    SELECT mynumber + 1 FROM series WHERE mynumber < 10
+)
+SELECT *, COUNT(*) OVER() AS total_numbers
+FROM series
+OPTION (MAXRECURSION 1000);
+```
+**Explanation:**  
+- The CTE `series` starts with 1, then adds 1 until it reaches 10.
+- The main query selects all numbers and counts them.
+
+---
+
+## When to Use CTEs
+
+- Simplify complex queries (especially with multiple steps).
+- Replace subqueries for better readability.
+- Reference the same result set multiple times.
+- Build recursive queries (hierarchies, sequences).
+
+---
+
+## Summary Table
+
+| Type           | Description                                 | Example Use Case                |
+|----------------|---------------------------------------------|---------------------------------|
+| Standalone     | Single CTE for one query                    | Filter products above average   |
+| Multiple       | Several CTEs for multi-step logic           | Find high-value customers       |
+| Nested         | CTEs referencing other CTEs                 | Use calculated values           |
+| Recursive      | CTEs that call themselves                   | Generate sequences, hierarchies |
+
+---
+
+**Tip:**  
+CTEs make SQL queries easier to read, debug, and maintain. Use them for step-by-step logic and when you need to reuse results.

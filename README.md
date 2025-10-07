@@ -1,3 +1,5 @@
+>In SQL, we have to learn about mainly 5 things which are queries, joins, functions, optimization, and transactions.
+
 # SQL Query Examples and DDL Overview
 
 ## 1. Select all columns from the customers table
@@ -545,7 +547,7 @@ JOIN Sales.Customers c ON c.FirstName = e.FirstName AND c.LastName = e.LastName;
 > **Tip:** For static data (small, unchanging reference tables), set operators can optimize queries.
 
 
-> now we need to learn about **SQL_FUNCTIONS** which has 2 types 1) single-row functions 2) multi-row functions
+>now we need to learn about **SQL_FUNCTIONS** which has 2 types 1) single-row functions 2) multi-row functions
 
 ---
 
@@ -1017,7 +1019,7 @@ GROUP BY order_id;
 
 ## Window Function Examples and Explanations
 
-Window functions are powerful tools for analytics in SQL. They allow you to perform calculations across sets of rows related to the current row, without collapsing the result set. Below are some practical examples with explanations.
+Window functions are powerful tools for analytics in SQL. They allow you to perform calculations across sets of rows related to the current row, without grouping or collapsing the result set. Below are some practical examples with explanations.
 
 ---
 
@@ -1312,3 +1314,262 @@ These let you look at values from other rows, like the previous or next row.
 Window functions use the `OVER()` clause. You can use `ORDER BY` to sort, and `PARTITION BY` to group rows for calculation.  
 They let you do things like ranking, running totals, and comparing rows—all without losing any rows from your result.
 
+>There are Many techniques to optimize the SQL queries like indexing, query refactoring, caching, and database configuration.
+
+# Database architecture and Components
+
+**Database architecture** refers to the design and structure of a database system, including how data is stored, accessed, and managed on the server. It consists of several key components:
+
+- **Database Engine:** The core service that processes SQL queries, manages transactions, and controls access to data.
+- **Disk Storage:** Where persistent data is stored (tables, indexes, logs). Data on disk is durable and survives server restarts.
+- **Cache (Buffer Pool):** Memory area used to temporarily store frequently accessed data and query results for faster performance.
+- **User:** Represents the client or application connecting to the database, with specific permissions and roles.
+- **Catalog (System Catalog/Metadata):** Stores information about database objects (tables, columns, indexes, users, etc.).
+- **Temporary Storage:** Used for intermediate results, temporary tables, or sorting operations during query execution.
+
+**Types of Data:**
+- **DISK:** Permanent data stored on physical storage.
+- **CACHE:** Volatile, fast-access data held in memory for performance.
+- **TEMPORARY:** Data created for short-term use during query processing.
+
+**Example:**
+Suppose a user runs a query to select customer data. The database engine receives the query, checks the catalog for table definitions, retrieves data from disk (if not cached), may use temporary storage for sorting/grouping, and returns results. Frequently accessed data is kept in cache for faster future queries.
+
+**Server Components Overview:**
+| Component        | Role/Function                                      |
+|------------------|---------------------------------------------------|
+| Database Engine  | Executes queries, manages transactions             |
+| Disk Storage     | Stores persistent data                             |
+| Cache            | Speeds up access to frequently used data           |
+| User             | Connects to DB, has permissions                    |
+| Catalog          | Holds metadata about DB objects                    |
+| Temporary        | Used for intermediate query results                |
+
+**Diagram (simplified):**
+```
+[User/Application]
+        |
+   [Database Engine]
+        |
+-----------------------------
+|   Disk   |   Cache   |   Temporary   |
+-----------------------------
+        |
+   [Catalog/Metadata]
+```
+
+This architecture ensures efficient, secure, and reliable data management for multiple users and applications.
+
+
+
+
+--subquery
+--its mainly used in 3 cateegory like dependency,reult types,location or clauses
+
+--result types
+--scalar query,row query,table query
+--select * from sales.products
+
+--location or clause
+--from
+--select productid,price,avg(price) over() avg_prices from sales.products
+--select * from (select productid,price,avg(price) over() avg_prices from sales.products)d where avg_prices<price
+--select customerid,sum(sales) ,rank() over(order by sum(sales) desc )  from sales.orders group by customerid
+--select colum 
+--we use selecct sub query only when the sub queery returns one value as a ooutput or scalr query only 
+--join columns
+--where colums in ehich first is comparsion opertor then logical opertor like( in,all,all,exisits)
+
+--correlated and non-correlated sub query
+# Subqueries in SQL
+
+Subqueries (also called inner queries or nested queries) are queries placed inside another SQL query. They are powerful tools for filtering, calculating, and joining data.
+
+## 1. Categories of Subqueries
+
+Subqueries can be classified based on:
+
+- **Dependency:**  
+  - *Correlated subquery*: Depends on the outer query for its values.
+  - *Non-correlated subquery*: Can run independently of the outer query.
+
+- **Result Types:**  
+  - *Scalar subquery*: Returns a single value.
+  - *Row subquery*: Returns a single row.
+  - *Table subquery*: Returns multiple rows and columns.
+
+- **Location/Clause:**  
+  Subqueries can be used in different parts of a SQL statement:
+  - `SELECT` clause
+  - `FROM` clause
+  - `WHERE` clause
+  - `JOIN` clause
+
+---
+
+## 2. Result Types Explained
+
+### a) Scalar Subquery
+
+Returns a single value.  
+**Example:** Find products with price above the average price.
+
+```sql
+SELECT productid, price
+FROM sales.products
+WHERE price > (SELECT AVG(price) FROM sales.products);
+```
+
+### b) Row Subquery
+
+Returns a single row (multiple columns).  
+**Example:** Get the product with the highest price.
+
+```sql
+SELECT *
+FROM sales.products
+WHERE (productid, price) = (
+    SELECT TOP 1 productid, price
+    FROM sales.products
+    ORDER BY price DESC
+);
+```
+
+### c) Table Subquery
+
+Returns multiple rows and columns.  
+**Example:** Use a subquery as a table in the FROM clause.
+
+```sql
+SELECT *
+FROM (
+    SELECT productid, price, AVG(price) OVER() AS avg_price
+    FROM sales.products
+) AS d
+WHERE price > avg_price;
+```
+
+---
+
+## 3. Subquery Locations
+
+### a) FROM Clause
+
+You can use a subquery as a derived table.
+
+**Example:**  
+Get products whose price is above the average.
+
+```sql
+SELECT *
+FROM (
+    SELECT productid, price, AVG(price) OVER() AS avg_price
+    FROM sales.products
+) AS d
+WHERE price > avg_price;
+```
+
+### b) SELECT Clause
+
+Use a subquery to calculate a value for each row.
+
+**Example:**  
+Show each product and the total number of products.
+
+```sql
+SELECT productid, price,
+    (SELECT COUNT(*) FROM sales.products) AS total_products
+FROM sales.products;
+```
+
+### c) WHERE Clause
+
+Filter rows using a subquery.
+
+**Example:**  
+Find customers who placed at least one order.
+
+```sql
+SELECT *
+FROM sales.customers
+WHERE customerid IN (SELECT customerid FROM sales.orders);
+```
+
+### d) JOIN Clause
+
+Join tables using a subquery.
+
+**Example:**  
+Get customers and their highest order amount.
+
+```sql
+SELECT c.customerid, c.firstname, o.max_sales
+FROM sales.customers c
+JOIN (
+    SELECT customerid, MAX(sales) AS max_sales
+    FROM sales.orders
+    GROUP BY customerid
+) o ON c.customerid = o.customerid;
+```
+
+---
+
+## 4. Correlated vs Non-Correlated Subqueries
+
+### a) Non-Correlated Subquery
+
+Runs independently of the outer query.
+
+**Example:**  
+Find products above average price.
+
+```sql
+SELECT productid, price
+FROM sales.products
+WHERE price > (SELECT AVG(price) FROM sales.products);
+```
+
+### b) Correlated Subquery
+
+References columns from the outer query.
+
+**Example:**  
+Find customers who placed more than one order.
+
+```sql
+SELECT customerid, firstname
+FROM sales.customers c
+WHERE 1 < (
+    SELECT COUNT(*)
+    FROM sales.orders o
+    WHERE o.customerid = c.customerid
+);
+```
+
+---
+
+## 5. Subquery Use Cases
+
+- **Filtering:**  
+  Use subqueries in WHERE to filter results based on another query.
+
+- **Calculations:**  
+  Use subqueries in SELECT to calculate values per row.
+
+- **Joins:**  
+  Use subqueries in FROM or JOIN to create derived tables.
+
+- **Existence Checks:**  
+  Use `EXISTS` or `IN` with subqueries to check for related data.
+
+---
+
+**Summary Table: Subquery Types and Examples**
+
+| Type         | Location   | Example SQL Snippet                                   | Description                       |
+|--------------|------------|------------------------------------------------------|-----------------------------------|
+| Scalar       | WHERE      | `WHERE price > (SELECT AVG(price) FROM products)`    | Single value                      |
+| Row          | WHERE      | `WHERE (id, price) = (SELECT ...)`                   | Single row                        |
+| Table        | FROM       | `FROM (SELECT ...) AS d`                             | Multiple rows/columns             |
+| Correlated   | WHERE      | `WHERE EXISTS (SELECT ... WHERE o.id = c.id)`        | Depends on outer query            |
+| Non-Correlated | WHERE    | `WHERE id IN (SELECT id FROM ...)`                   | Independent of outer query        |

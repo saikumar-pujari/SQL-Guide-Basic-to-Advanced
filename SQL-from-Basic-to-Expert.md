@@ -913,7 +913,20 @@ ORDER BY CASE WHEN score IS NULL THEN 1 ELSE 0 END, score;
 | DATEDIFF/ABS  | `select abs(datediff(day, day(dateadd(day, 2, getdate())), day(getdate())));`                                                                      | Difference between dates (absolute value)        |
 
 
->`select isnull(score,'itsunkon'),coalesce(score,billi,0),nullif(score,0),is null and is not null can be used in the where clasue also`
+>```sql
+-- ISNULL: Replace NULL values with a default value (SQL Server specific)
+select isnull(score, 'unknown') as clean_score from customers;
+
+-- COALESCE: Return first non-NULL value from a list (SQL Standard)
+select coalesce(score, billi, 0) as final_score from customers;
+
+-- NULLIF: Return NULL if two values are equal, otherwise return first value
+select nullif(score, 0) as score_or_null from customers;
+
+-- IS NULL and IS NOT NULL: Check for NULL values in WHERE clause
+select * from customers where score IS NULL;
+select * from customers where score IS NOT NULL;
+```
 
 
 --case 
@@ -947,3 +960,355 @@ FROM dbo.customers;
 ```
 
 This will output each customer's name, score, and a category ("High", "Medium", or "Low") based on their score.
+
+---
+
+## Aggregate Functions (GROUP BY)
+
+Aggregate functions perform calculations on groups of rows and return a single result per group.
+
+**Common aggregate functions:**
+- `COUNT(*)` - Count number of rows
+- `SUM(column)` - Total sum of values
+- `AVG(column)` - Average of values
+- `MAX(column)` - Highest value
+- `MIN(column)` - Lowest value
+
+### Basic Aggregation (All Rows)
+
+```sql
+-- Get overall statistics for all orders
+SELECT 
+    COUNT(*) AS total_orders,
+    AVG(sales) AS avg_sales,
+    SUM(sales) AS total_sales,
+    MAX(sales) AS highest_sale,
+    MIN(sales) AS lowest_sale
+FROM orders;
+```
+
+**Example Output:**
+| total_orders | avg_sales | total_sales | highest_sale | lowest_sale |
+|--------------|-----------|-------------|--------------|-------------|
+| 1000         | 485.50    | 485500.00   | 2500.00      | 25.00       |
+
+### Grouped Aggregation (GROUP BY)
+
+```sql
+-- Get statistics grouped by order_id
+SELECT 
+    order_id,
+    COUNT(*) AS items_per_order,
+    AVG(sales) AS avg_item_price,
+    SUM(sales) AS order_total,
+    MAX(sales) AS most_expensive_item,
+    MIN(sales) AS cheapest_item
+FROM orders
+GROUP BY order_id;
+```
+
+**Example Output:**
+| order_id | items_per_order | avg_item_price | order_total | most_expensive_item | cheapest_item |
+|----------|-----------------|----------------|-------------|---------------------|---------------|
+| 1001     | 3               | 150.00         | 450.00      | 200.00              | 100.00        |
+| 1002     | 2               | 300.00         | 600.00      | 400.00              | 200.00        |
+
+---
+
+## Window Function Examples and Explanations
+
+Window functions are powerful tools for analytics in SQL. They allow you to perform calculations across sets of rows related to the current row, without collapsing the result set. Below are some practical examples with explanations.
+
+---
+
+## 1. Running Total by Product
+
+**Query:**
+```sql
+SELECT 
+    sales,
+    productid,
+    SUM(sales) OVER (PARTITION BY productid ORDER BY sales, orderdate) AS running_total
+FROM sales.orders;
+```
+**Explanation:**  
+- `SUM(sales) OVER (...)` calculates a running total of sales for each product (`PARTITION BY productid`).
+- The `ORDER BY sales, orderdate` defines the order in which the running total is calculated.
+- Each row shows the cumulative sales for its product up to that point.
+
+---
+
+## 2. Moving Total, Running Total, Rolling Total, Moving Average
+
+These terms refer to calculations over a "window" of rows.
+
+- **Moving Total / Running Total:** Cumulative sum up to the current row.
+- **Rolling Total:** Sum over a fixed number of previous rows.
+- **Moving Average:** Average over a fixed number of previous rows.
+
+**Example: Moving Average of Sales (last 3 orders per product)**
+```sql
+SELECT 
+    orderid,
+    productid,
+    sales,
+    AVG(sales) OVER (
+        PARTITION BY productid 
+        ORDER BY orderid 
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) AS moving_avg_3_orders
+FROM sales.orders;
+```
+**Explanation:**  
+- Calculates the average sales for each product, considering the current and previous two orders.
+
+---
+
+## 3. Maximum Salary Across All Employees
+
+**Query:**
+```sql
+SELECT 
+    *,
+    MAX(salary) OVER () AS max_salary
+FROM sales.employees;
+```
+**Explanation:**  
+- `MAX(salary) OVER ()` returns the highest salary in the entire employees table for every row.
+
+---
+
+## 4. Average Score with and without NULLs
+
+**Query:**
+```sql
+SELECT 
+    customerid,
+    lastname,
+    score,
+    ISNULL(score, 0) AS score_without_null,
+    AVG(score) OVER () AS avg_score,
+    AVG(ISNULL(score, 0)) OVER () AS avg_score_with_nulls_as_zero
+FROM sales.customers;
+```
+**Explanation:**  
+- `ISNULL(score, 0)` replaces NULL scores with 0.
+- `AVG(score) OVER ()` calculates the average, ignoring NULLs.
+- `AVG(ISNULL(score, 0)) OVER ()` treats NULLs as zero for the average.
+
+---
+
+## 5. Percentage Value of Each Sale
+
+**Query:**
+```sql
+SELECT 
+    orderid,
+    productid,
+    sales,
+    SUM(sales) OVER (PARTITION BY productid) AS total_sales_per_product,
+    ROUND(CAST(sales AS FLOAT) / SUM(sales) OVER () * 100, 2) AS value_percentage
+FROM sales.orders;
+```
+**Explanation:**  
+- `SUM(sales) OVER (PARTITION BY productid)` gives total sales for each product.
+- `ROUND(CAST(sales AS FLOAT) / SUM(sales) OVER () * 100, 2)` calculates the percentage of each sale compared to total sales, rounded to 2 decimals.
+
+---
+
+## Summary Table
+
+| Example                      | Purpose                                      |
+|------------------------------|----------------------------------------------|
+| Running Total                | Cumulative sum per group                     |
+| Moving Average               | Average over a window of rows                |
+| MAX() OVER ()                | Maximum value for all rows                   |
+| AVG() OVER ()                | Average value for all rows                   |
+| AVG(ISNULL(...)) OVER ()     | Average treating NULLs as zero               |
+| Percentage Calculation       | Sale as % of total sales                     |
+
+---
+
+# Window Ranking and Value Functions Explained for Beginners
+
+Window functions are advanced SQL features that let you perform calculations across rows related to the current row, without grouping or collapsing the result set. They are very useful for analytics, reporting, and comparing data.
+
+## 1. Ranking Functions
+
+These functions assign a number or rank to each row, based on the order you specify.
+
+### a) ROW_NUMBER()
+
+- **What it does:** Gives each row a unique number, starting at 1, based on the order you choose.
+- **Why use it:** To number rows, or pick the "top N" per group.
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      ROW_NUMBER() OVER (ORDER BY sales DESC) AS row_num
+  FROM sales.orders;
+  ```
+  *This will number the orders from highest sales (row_num = 1) to lowest.*
+
+### b) RANK()
+
+- **What it does:** Assigns a rank to each row, with gaps if there are ties.
+- **Why use it:** To show position in a leaderboard, where ties get the same rank.
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      RANK() OVER (ORDER BY sales DESC) AS sales_rank
+  FROM sales.orders;
+  ```
+  *If two orders have the same sales, they get the same rank, and the next rank is skipped.*
+
+### c) DENSE_RANK()
+
+- **What it does:** Like RANK(), but no gaps in ranking for ties.
+- **Why use it:** To rank items without skipping numbers for ties.
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      DENSE_RANK() OVER (ORDER BY sales DESC) AS dense_sales_rank
+  FROM sales.orders;
+  ```
+  *Tied sales get the same rank, and the next rank is just one higher.*
+
+### d) NTILE(n)
+
+- **What it does:** Splits rows into n groups (tiles) of roughly equal size.
+- **Why use it:** To divide data into quartiles, deciles, etc.
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      NTILE(4) OVER (ORDER BY sales DESC) AS sales_quartile
+  FROM sales.orders;
+  ```
+  *This divides all orders into 4 groups based on sales.*
+
+---
+
+## 2. Percentage Ranking Functions
+
+These help you see how each row compares to others as a percentage.
+
+### a) CUME_DIST()
+
+- **What it does:** Shows the fraction of rows with a value less than or equal to the current row.
+- **Why use it:** To find percentiles (e.g., top 10%).
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      CUME_DIST() OVER (ORDER BY sales DESC) AS sales_cume_dist
+  FROM sales.orders;
+  ```
+  *A value of 0.8 means this row is in the top 80%.*
+
+### b) PERCENT_RANK()
+
+- **What it does:** Shows the relative rank of a row as a percentage (from 0 to 1).
+- **Why use it:** To see how far down the list each row is.
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      PERCENT_RANK() OVER (ORDER BY sales DESC) AS sales_percent_rank
+  FROM sales.orders;
+  ```
+  *A value of 0.5 means this row is halfway down the ranking.*
+
+---
+
+## 3. Value Functions
+
+These let you look at values from other rows, like the previous or next row.
+
+### a) LEAD()
+
+- **What it does:** Gets the value from the next row.
+- **Why use it:** To compare current value to the next one.
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      LEAD(sales, 1) OVER (ORDER BY orderid) AS next_order_sales
+  FROM sales.orders;
+  ```
+  *Shows the sales value of the next order.*
+
+### b) LAG()
+
+- **What it does:** Gets the value from the previous row.
+- **Why use it:** To compare current value to the previous one.
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      LAG(sales, 1) OVER (ORDER BY orderid) AS prev_order_sales
+  FROM sales.orders;
+  ```
+  *Shows the sales value of the previous order.*
+
+### c) FIRST_VALUE()
+
+- **What it does:** Gets the first value in the window (partition).
+- **Why use it:** To compare every row to the first row in the group.
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      FIRST_VALUE(sales) OVER (ORDER BY orderid) AS first_sales
+  FROM sales.orders;
+  ```
+  *Shows the sales value of the first order.*
+
+### d) LAST_VALUE()
+
+- **What it does:** Gets the last value in the window (partition).
+- **Why use it:** To compare every row to the last row in the group.
+- **Example:**
+  ```sql
+  SELECT 
+      orderid,
+      sales,
+      LAST_VALUE(sales) OVER (ORDER BY orderid ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS last_sales
+  FROM sales.orders;
+  ```
+  *Shows the sales value of the last order.*
+
+---
+
+## Summary Table
+
+| Function         | What it does (for beginners)                  | Example Usage                        |
+|------------------|-----------------------------------------------|--------------------------------------|
+| ROW_NUMBER()     | Numbers each row in order                     | Find top N per group                 |
+| RANK()           | Ranks rows, with gaps for ties                | Leaderboards                         |
+| DENSE_RANK()     | Ranks rows, no gaps for ties                  | Dense ranking                        |
+| NTILE(n)         | Splits rows into n groups                     | Quartiles, deciles                   |
+| CUME_DIST()      | Shows percentile (fraction <= current row)    | Find top 10%                         |
+| PERCENT_RANK()   | Shows relative rank as percent                | See how far down the list             |
+| LEAD()           | Gets value from next row                      | Compare to next value                |
+| LAG()            | Gets value from previous row                  | Compare to previous value            |
+| FIRST_VALUE()    | Gets first value in group                     | Compare to first in group            |
+| LAST_VALUE()     | Gets last value in group                      | Compare to last in group             |
+
+---
+
+**Tip for Beginners:**  
+Window functions use the `OVER()` clause. You can use `ORDER BY` to sort, and `PARTITION BY` to group rows for calculation.  
+They let you do things like ranking, running totals, and comparing rows—all without losing any rows from your result.
+

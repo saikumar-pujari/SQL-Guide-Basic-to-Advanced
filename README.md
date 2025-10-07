@@ -830,3 +830,120 @@ select getdate() as current_datetime;
 select isdate('2024-06-01') as is_valid_date;
 select isdate('not-a-date') as is_valid_date;
 ```
+
+---
+
+## Handling NULLs in SQL
+
+NULLs represent missing or unknown values in SQL. They are common in optional fields.
+
+### 1. Replacing NULLs with Actual Data
+
+- Use `ISNULL` (SQL Server) or `COALESCE` (standard SQL) to replace NULLs with a specified value.
+
+```sql
+-- Replace NULL ShipAddress with 'YAITSEMPTY' (in uppercase)
+SELECT ISNULL(ShipAddress, UPPER('yaitsempty')) AS ShipAddress FROM sales.orders;
+
+-- Replace NULL shipaddress with billaddress, or 'unknown' if both are NULL
+SELECT COALESCE(shipaddress, billaddress, 'unknown') AS Address FROM sales.orders;
+```
+
+### 2. Replacing Existing Data with NULL
+
+- Use `NULLIF` to return NULL if two expressions are equal.
+
+```sql
+-- Returns NULL if score is 0, otherwise returns score
+SELECT NULLIF(score, 0) AS score_or_null FROM sales.Customers;
+```
+
+### 3. Checking for NULLs
+
+- Use `IS NULL` and `IS NOT NULL` to filter or check for NULL values.
+
+```sql
+-- Find orders with missing ShipAddress
+SELECT * FROM sales.orders WHERE ShipAddress IS NULL;
+
+-- Find customers with a known score
+SELECT * FROM sales.Customers WHERE score IS NOT NULL;
+```
+
+### 4. Aggregating and Ordering with NULLs
+
+- Use `ISNULL` or `COALESCE` inside aggregates to treat NULLs as a default value.
+
+```sql
+-- Average score, treating NULL as 0
+SELECT customerid, AVG(ISNULL(score, 0)) OVER() AS avg_score FROM sales.Customers;
+```
+
+- Order by NULLs last (SQL Server example):
+
+```sql
+SELECT customerid, score
+FROM sales.Customers
+ORDER BY CASE WHEN score IS NULL THEN 1 ELSE 0 END, score;
+```
+
+### 5. Notes
+
+- `ISNULL` and `COALESCE` replace NULLs with actual data.
+- `NULLIF` replaces existing data with NULL if a condition is met.
+- `IS NULL` and `IS NOT NULL` are used to check for NULLs in queries.
+- When using `IS NULL`, the result is TRUE (actual data) or FALSE (NULL). If the condition is satisfied, it returns the actual data; otherwise, NULL.
+- `IS NOT NULL` is the opposite of `IS NULL`.
+
+---
+# -> ALL Examples for the single row functions
+
+| Function      | Example SQL                                                                                                                                         | Description                                      |
+|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------|
+| LEN           | `select first_name, country, len(country) as [just length man] from customers;`                                                                     | Get length of a string                           |
+| LEFT          | `select left(first_name, 3) as [na i dont know whts it] from customers;`                                                                            | Get leftmost N characters                        |
+| SUBSTRING     | `select substring(first_name, 2, 3) as [substring] from customers;`                                                                                 | Extract substring from position                  |
+| REPLACE/CONCAT/UPPER/LOWER | `select replace(CONCAT(upper(first_name), '-', lower(country)), '-', '___') as FULL_NAME from customers;`                             | String manipulation and replacement              |
+| ROUND         | `select round(3.234333, 4) as rounded_value;`                                                                                                       | Round a number                                   |
+| ABS           | `select abs(-10) as absolute_value;`                                                                                                                | Absolute value                                   |
+| DAY/MONTH/YEAR| `select day(getdate()), month(getdate()), year(getdate());`                                                                                        | Extract day, month, year from current date       |
+| DATEPART      | `select datepart(day, getdate()), datepart(month, getdate()), datepart(year, getdate()), datepart(weekday, getdate()), datepart(quarter, getdate());` | Extract parts of date/time                       |
+| DATENAME      | `select datename(day, getdate()), datename(month, getdate()), datename(week, getdate()), datename(weekday, getdate());`                             | Get name of date part                            |
+| DATEADD       | `select day(dateadd(day, 2, getdate())), day(getdate()), month(dateadd(month, 2, getdate())), month(getdate());`                                   | Add interval to date                             |
+| DATEDIFF/ABS  | `select abs(datediff(day, day(dateadd(day, 2, getdate())), day(getdate())));`                                                                      | Difference between dates (absolute value)        |
+
+
+>`select isnull(score,'itsunkon'),coalesce(score,billi,0),nullif(score,0),is null and is not null can be used in the where clasue also`
+
+
+--case 
+--case 
+--	when condition1 then 1 else 0
+--end
+
+## Using CASE Statements in SQL
+
+The `CASE` statement allows you to add conditional logic to your SQL queries. It works like an IF-THEN-ELSE statement.
+
+**Syntax:**
+```sql
+CASE 
+    WHEN condition1 THEN result1
+    WHEN condition2 THEN result2
+    ...
+    ELSE default_result
+END
+```
+
+**Example: Categorize customers based on score**
+```sql
+SELECT first_name, score,
+    CASE
+        WHEN score >= 800 THEN 'High'
+        WHEN score >= 400 THEN 'Medium'
+        ELSE 'Low'
+    END AS score_category
+FROM dbo.customers;
+```
+
+This will output each customer's name, score, and a category ("High", "Medium", or "Low") based on their score.

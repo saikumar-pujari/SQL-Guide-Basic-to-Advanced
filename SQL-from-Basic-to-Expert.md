@@ -527,7 +527,6 @@ INTERSECT
 SELECT FirstName, LastName FROM Sales.Customers;
 ```
 #### its same as inner join
-<!-- <mark>its same as inner join</mark>sq -->
 ---
 **Example output:**
 
@@ -916,19 +915,19 @@ ORDER BY CASE WHEN score IS NULL THEN 1 ELSE 0 END, score;
 | DATEDIFF/ABS  | `select abs(datediff(day, day(dateadd(day, 2, getdate())), day(getdate())));`                                                                      | Difference between dates (absolute value)        |
 
 
---```sql
+>```sql
 -- ISNULL: Replace NULL values with a default value (SQL Server specific)
--- select isnull(score, 'unknown') as clean_score from customers;
+select isnull(score, 'unknown') as clean_score from customers;
 
 -- COALESCE: Return first non-NULL value from a list (SQL Standard)
--- select coalesce(score, billi, 0) as final_score from customers;
+select coalesce(score, billi, 0) as final_score from customers;
 
 -- NULLIF: Return NULL if two values are equal, otherwise return first value
--- select nullif(score, 0) as score_or_null from customers;
+select nullif(score, 0) as score_or_null from customers;
 
 -- IS NULL and IS NOT NULL: Check for NULL values in WHERE clause
--- select * from customers where score IS NULL;
--- select * from customers where score IS NOT NULL;
+select * from customers where score IS NULL;
+select * from customers where score IS NOT NULL;
 ```
 
 
@@ -2033,142 +2032,45 @@ SELECT * FROM high_value_customers;
 - **CTAS:** Creating permanent derived/summary tables
 - **Views:** Simplifying complex queries for repeated use with current data
 
+--table partitions
+-- Table partitions are a way to divide a large table into smaller, more manageable pieces based on a column value (often a date or ID). This improves query performance and makes maintenance easier.
+-- Example:
+-- Suppose you have a sales table with millions of rows. You can partition it by year so that each year's data is stored separately.
 
+--create partition function yamanitstrange (date) as range left for values (value1,value2,value3);
+-- A partition function defines how the data is split into partitions. It specifies the boundary values for each partition.
+-- Example:
+-- CREATE PARTITION FUNCTION pf_SalesDate (DATE)
+-- AS RANGE LEFT FOR VALUES ('2022-01-01', '2023-01-01', '2024-01-01');
+-- This creates partitions for dates before 2022, between 2022 and 2023, and so on.
 
+--file group if we have files use alter and add the files and remove the files so that catalog wont be albe to go through the file
+-- Filegroups are logical containers for database files. You can add or remove files from filegroups to manage storage.
+-- Example:
+-- ALTER DATABASE SalesDB ADD FILE (
+--     NAME = SalesData2022,
+--     FILENAME = 'D:\Data\SalesData2022.mdf'
+-- ) TO FILEGROUP SalesFG2022;
 
-# Indexes in SQL Explained with Examples
+--alter database name add file ();
+-- the files will be saved as a (.mdf) files for the SQL file 
+--for datafiles alter database name add file (
+--			name="xxx"  --logical name
+			--file-"/xyz/xyz" --file locations
+--) to filegroup as custom_name;
+-- Datafiles are the physical files on disk where SQL Server stores data. You can add datafiles to filegroups to expand storage.
+-- Example:
+-- ALTER DATABASE SalesDB ADD FILE (
+--     NAME = SalesData2023,
+--     FILENAME = 'D:\Data\SalesData2023.mdf'
+-- ) TO FILEGROUP SalesFG2023;
 
-## 1. Index
+--to summarize it all the partition function will the boundaries of the partition and the file group will tell the section of partitions and data files to store the filegroup and partition_schema is used to connect both the partition function and the filegroup
+-- Partition function defines boundaries, filegroup tells where data is stored, and partition scheme connects both.
+-- Example:
+-- CREATE PARTITION SCHEME ps_SalesDate
+-- AS PARTITION pf_SalesDate
+-- TO (SalesFG2021, SalesFG2022, SalesFG2023, SalesFG2024);
 
-An **index** is a database object that speeds up data retrieval. It works like a book's index, letting you quickly find rows based on column values.
-
-**Example:**  
-Suppose you often search for customers by `customerid`. Creating an index on `customerid` makes these queries faster.
-
-```sql
-CREATE INDEX idx_customerid ON sales.customers(customerid);
-```
-
-## 2. Pages of Index
-
-Indexes are stored in **pages** (blocks of data). SQL Server organizes data in 8KB pages. Index pages hold pointers to data rows, making lookups efficient.
-
-**Example:**  
-When you query for a specific customer, the index page helps the database jump directly to the right data page.
-
-## 3. Datafile (.mdf), Data Page, Heap
-
-- **datafile.mdf:** The main file where SQL Server stores table data.
-- **Data Page:** The basic unit of storage (8KB) for table/index data.
-- **Heap:** A table without a clustered index; rows are stored in random order.
-
-**Example:**  
-If you create a table without a clustered index, it's stored as a heap.
-
-```sql
-CREATE TABLE sales.customers (
-  customerid INT PRIMARY KEY,
-  name VARCHAR(50)
-);
--- If no clustered index, data is stored in a heap.
-```
-
-## 4. Index Page (B-TREE)
-
-Indexes use a **B-Tree** structure:  
-- **Root page:** Top of the tree  
-- **Intermediate pages:** Branches  
-- **Leaf pages:** Point to actual data rows
-
-**Example:**  
-When searching for a value, the database traverses the B-Tree from root to leaf for fast lookup.
-
-## 5. Clustered Index vs Heap Structure
-
-- **Clustered Index:** Sorts and stores table rows based on the indexed column(s). Only one per table.
-- **Heap Structure:** No order; rows stored randomly.
-
-**Example:**  
-Create a clustered index:
-
-```sql
-CREATE CLUSTERED INDEX idx_customerid ON sales.customers(customerid);
-```
-
-Now, data is physically ordered by `customerid`.
-
-## 6. Non-Clustered Index
-
-A **non-clustered index** is a separate structure that points to rows in the table. You can have many non-clustered indexes.
-
-**Example:**  
-Create a non-clustered index on `country`:
-
-```sql
-CREATE NONCLUSTERED INDEX idx_country ON sales.customers(country);
-```
-
-## 7. select * into sales.custom from sales.Customers
-
-This copies all data from `sales.Customers` into a new table `sales.custom`.
-
-```sql
-SELECT * INTO sales.custom FROM sales.Customers;
-```
-
-## 8. select * from Sales.custom where CustomerID =1
-
-Query to get the customer with ID 1 from the new table.
-
-```sql
-SELECT * FROM Sales.custom WHERE CustomerID = 1;
-```
-
-## 9. create clustered index idx_dbocuomer on sales.custom(customerid)
-
-Creates a clustered index on `customerid` in the `sales.custom` table.
-
-```sql
-CREATE CLUSTERED INDEX idx_dbocuomer ON sales.custom(customerid);
-```
-
-## 10. Columnstore and Rowstore, Efficiency, Data Storage
-
-- **Rowstore:** Traditional storage; data saved row by row. Good for OLTP (transactional) workloads.
-- **Columnstore:** Data saved column by column. Efficient for analytics and large aggregations.
-
-**Example:**  
-Create a columnstore index for fast reporting:
-
-```sql
-CREATE COLUMNSTORE INDEX idx_sales ON sales.orders;
-```
-
-## 11. Unique Index and Filter Index
-
-- **Unique Index:** Ensures all values in the indexed column are unique.
-
-```sql
-CREATE UNIQUE INDEX idx_unique_email ON sales.customers(email);
-```
-
-- **Filter Index:** Indexes only a subset of rows (with a WHERE clause).
-
-```sql
-CREATE NONCLUSTERED INDEX idx_active_customers ON sales.customers(status)
-WHERE status = 'Active';
-```
-
----
-
-**Summary Table: Index Types**
-
-| Type               | Purpose                        | Example SQL                                   |
-|--------------------|-------------------------------|-----------------------------------------------|
-| Clustered Index    | Physical order of rows         | `CREATE CLUSTERED INDEX ...`                  |
-| Non-Clustered Index| Fast lookup, separate structure| `CREATE NONCLUSTERED INDEX ...`               |
-| Columnstore Index  | Analytics, fast aggregation    | `CREATE COLUMNSTORE INDEX ...`                |
-| Unique Index       | Enforce uniqueness             | `CREATE UNIQUE INDEX ...`                     |
-| Filter Index       | Index subset of rows           | `CREATE NONCLUSTERED INDEX ... WHERE ...`     |
-
-Indexes improve query performance but can slow down inserts/updates. Use them wisely for columns you search or sort often.
+--create partition scheme name as partitions name to (filenames in a correct order)
+-- This links the partition function to the filegroups so each partition's data is stored in the correct filegroup.

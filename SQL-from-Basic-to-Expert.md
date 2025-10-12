@@ -2032,45 +2032,132 @@ SELECT * FROM high_value_customers;
 - **CTAS:** Creating permanent derived/summary tables
 - **Views:** Simplifying complex queries for repeated use with current data
 
---table partitions
--- Table partitions are a way to divide a large table into smaller, more manageable pieces based on a column value (often a date or ID). This improves query performance and makes maintenance easier.
--- Example:
--- Suppose you have a sales table with millions of rows. You can partition it by year so that each year's data is stored separately.
+# SQL Server Table Partitioning Explained (with Examples)
 
---create partition function yamanitstrange (date) as range left for values (value1,value2,value3);
--- A partition function defines how the data is split into partitions. It specifies the boundary values for each partition.
--- Example:
--- CREATE PARTITION FUNCTION pf_SalesDate (DATE)
--- AS RANGE LEFT FOR VALUES ('2022-01-01', '2023-01-01', '2024-01-01');
--- This creates partitions for dates before 2022, between 2022 and 2023, and so on.
+## What is Table Partitioning?
+Table partitioning helps you split large tables into smaller, manageable pieces called partitions. This improves performance and makes maintenance easier.
 
---file group if we have files use alter and add the files and remove the files so that catalog wont be albe to go through the file
--- Filegroups are logical containers for database files. You can add or remove files from filegroups to manage storage.
--- Example:
--- ALTER DATABASE SalesDB ADD FILE (
---     NAME = SalesData2022,
---     FILENAME = 'D:\Data\SalesData2022.mdf'
--- ) TO FILEGROUP SalesFG2022;
+---
 
---alter database name add file ();
--- the files will be saved as a (.mdf) files for the SQL file 
---for datafiles alter database name add file (
---			name="xxx"  --logical name
-			--file-"/xyz/xyz" --file locations
---) to filegroup as custom_name;
--- Datafiles are the physical files on disk where SQL Server stores data. You can add datafiles to filegroups to expand storage.
--- Example:
--- ALTER DATABASE SalesDB ADD FILE (
---     NAME = SalesData2023,
---     FILENAME = 'D:\Data\SalesData2023.mdf'
--- ) TO FILEGROUP SalesFG2023;
+## 1. Partition Function
 
---to summarize it all the partition function will the boundaries of the partition and the file group will tell the section of partitions and data files to store the filegroup and partition_schema is used to connect both the partition function and the filegroup
--- Partition function defines boundaries, filegroup tells where data is stored, and partition scheme connects both.
--- Example:
--- CREATE PARTITION SCHEME ps_SalesDate
--- AS PARTITION pf_SalesDate
--- TO (SalesFG2021, SalesFG2022, SalesFG2023, SalesFG2024);
+A **partition function** defines how SQL Server divides your data into partitions based on column values.
 
---create partition scheme name as partitions name to (filenames in a correct order)
--- This links the partition function to the filegroups so each partition's data is stored in the correct filegroup.
+**Example:**  
+Suppose you want to split data by date ranges:
+
+```sql
+CREATE PARTITION FUNCTION pfDateRange (date)
+AS RANGE LEFT FOR VALUES ('2022-01-01', '2022-06-01', '2022-12-31');
+```
+- This creates 4 partitions:
+  - Before 2022-01-01
+  - 2022-01-01 to 2022-06-01
+  - 2022-06-01 to 2022-12-31
+  - After 2022-12-31
+
+---
+
+## 2. Filegroups
+
+**Filegroups** are logical storage containers in SQL Server. You can add files to filegroups to organize where your data is stored.
+
+**Add a file to a filegroup:**
+```sql
+ALTER DATABASE MyDatabase ADD FILE (
+    NAME = 'DataFile1', -- logical name
+    FILENAME = 'C:\Data\DataFile1.mdf' -- file location
+) TO FILEGROUP FG1;
+```
+
+**Remove a file from a filegroup:**
+```sql
+ALTER DATABASE MyDatabase REMOVE FILE DataFile1;
+```
+
+- Files are usually saved as `.mdf` files.
+
+---
+
+## 3. Partition Scheme
+
+A **partition scheme** connects your partition function to filegroups. It tells SQL Server where to store each partition.
+
+**Example:**
+```sql
+CREATE PARTITION SCHEME psDateRange
+AS PARTITION pfDateRange
+TO (FG1, FG2, FG3, FG4);
+```
+- Each partition will be stored in a different filegroup.
+
+---
+
+## 4. Putting It All Together
+
+**Step-by-step Example:**
+
+1. **Create Filegroups:**
+    ```sql
+    ALTER DATABASE MyDatabase ADD FILEGROUP FG1;
+    ALTER DATABASE MyDatabase ADD FILEGROUP FG2;
+    ALTER DATABASE MyDatabase ADD FILEGROUP FG3;
+    ALTER DATABASE MyDatabase ADD FILEGROUP FG4;
+    ```
+
+2. **Add Files to Filegroups:**
+    ```sql
+    ALTER DATABASE MyDatabase ADD FILE (
+        NAME = 'DataFile1',
+        FILENAME = 'C:\Data\DataFile1.mdf'
+    ) TO FILEGROUP FG1;
+    -- Repeat for FG2, FG3, FG4
+    ```
+
+3. **Create Partition Function:**
+    ```sql
+    CREATE PARTITION FUNCTION pfDateRange (date)
+    AS RANGE LEFT FOR VALUES ('2022-01-01', '2022-06-01', '2022-12-31');
+    ```
+
+4. **Create Partition Scheme:**
+    ```sql
+    CREATE PARTITION SCHEME psDateRange
+    AS PARTITION pfDateRange
+    TO (FG1, FG2, FG3, FG4);
+    ```
+
+5. **Create a Partitioned Table:**
+    ```sql
+    CREATE TABLE Orders (
+        OrderID INT,
+        OrderDate DATE
+    ) ON psDateRange(OrderDate);
+    ```
+
+---
+
+## Summary
+
+- **Partition Function:** Sets boundaries for partitions.
+- **Filegroup:** Defines where data for each partition is stored.
+- **Partition Scheme:** Connects partition function to filegroups.
+- **Partitioned Table:** Uses the scheme to store data in partitions.
+
+---
+
+## Quick Reference
+
+```sql
+-- Partition Function
+CREATE PARTITION FUNCTION pfDateRange (date) AS RANGE LEFT FOR VALUES ('2022-01-01', '2022-06-01', '2022-12-31');
+
+-- Partition Scheme
+CREATE PARTITION SCHEME psDateRange AS PARTITION pfDateRange TO (FG1, FG2, FG3, FG4);
+
+-- Partitioned Table
+CREATE TABLE Orders (
+    OrderID INT,
+    OrderDate DATE
+) ON psDateRange(OrderDate);
+```

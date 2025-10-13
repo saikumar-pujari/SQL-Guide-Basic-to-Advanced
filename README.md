@@ -2161,3 +2161,36 @@ CREATE TABLE Orders (
     OrderDate DATE
 ) ON psDateRange(OrderDate);
 ```
+## Tips to Optimize SQL Queries for Better Performance
+| Tip # | Description |
+|-------|-------------|
+| 1     | Select only required columns to avoid fetching unnecessary data. |
+| 2     | Avoid unnecessary DISTINCT and ORDER BY clauses. |
+| 3     | Limit rows for exploration queries. |
+| 4     | Create a non-clustered index on frequently used columns in WHERE clause. |
+| 5     | Avoid applying functions to columns in WHERE clause. |
+| 6     | Avoid leading wildcards in LIKE queries to enable index usage. |
+| 7     | Use IN instead of multiple OR conditions. |
+| 8     | Prefer INNER JOIN for faster processing when possible. |
+| 9     | Use explicit (ANSI) JOINs instead of implicit joins. |
+| 10    | Index columns used in ON clauses. |
+| 11    | Filter large tables before joining, using CTEs or subqueries. |
+| 12    | Aggregate data before joining to avoid inefficient correlated queries. |
+| 13    | Use UNION instead of OR in joins. |
+| 14    | Check for nested loops and use SQL hints (e.g., hash joins) for big tables. |
+| 15    | Use UNION ALL instead of UNION when duplicates are acceptable. |
+| 16    | Use UNION ALL with DISTINCT if duplicates are not acceptable. |
+| 17    | Use columnstore indexes for aggregation on large tables. |
+| 18    | Pre-aggregate data and store in new tables for reporting. |
+| 19    | Prefer JOIN over IN if performance is similar; EXISTS can be better. |
+| 20    | Avoid redundant logic in queries. |
+| 21    | Avoid VARCHAR and TEXT data types if possible; TEXT is worse than VARCHAR. |
+| 22    | Avoid unnecessarily large length (MAX) in data types. |
+| 23    | Use NOT NULL constraints where applicable. |
+| 24    | Ensure all tables have a clustered primary key. |
+| 25    | Create non-clustered indexes for frequently used foreign keys. |
+| 26    | Avoid over-indexing tables. |
+| 27    | Drop unused indexes. |
+| 28    | Update statistics weekly. |
+| 29    | Rebuild and reorganize indexes weekly. |
+| 30    | Partition large tables and apply columnstore indexes for best performance. |

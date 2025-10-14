@@ -2194,3 +2194,80 @@ CREATE TABLE Orders (
 | 28    | Update statistics weekly. |
 | 29    | Rebuild and reorganize indexes weekly. |
 | 30    | Partition large tables and apply columnstore indexes for best performance. |
+
+# SQL Concepts Explained
+
+## Stored Procedures
+
+A stored procedure is a set of SQL statements that can be executed as a single unit. It helps in reusing code and improving performance.
+
+**Syntax Example:**
+```sql
+CREATE PROCEDURE saikumar
+AS
+BEGIN
+    -- SQL statements here
+END
+```
+
+**Executing a Stored Procedure:**
+```sql
+EXEC saikumar
+```
+
+**Stored Procedure with Parameters:**
+```sql
+CREATE PROCEDURE saikumar @parameter NVARCHAR(50)
+AS
+BEGIN
+    SELECT * FROM table_name WHERE name = @parameter
+END
+```
+
+**Executing with Parameter:**
+```sql
+EXEC saikumar @parameter = 'John'
+```
+
+---
+
+## Variables, IF-ELSE, TRY-CATCH
+
+Variables are used to store data temporarily. IF-ELSE is used for conditional logic. TRY-CATCH is used for error handling.
+
+**Example:**
+```sql
+DECLARE @age INT = 25
+
+IF @age > 18
+    PRINT 'Adult'
+ELSE
+    PRINT 'Minor'
+
+BEGIN TRY
+    -- SQL statements that may cause errors
+END TRY
+BEGIN CATCH
+    PRINT ERROR_MESSAGE()
+END CATCH
+```
+
+---
+
+## Triggers
+
+A trigger is a special type of stored procedure that runs automatically when a specific event occurs in the database (like INSERT, UPDATE, DELETE).
+
+**Syntax Example:**
+```sql
+CREATE TRIGGER trg_after_insert
+ON table_name
+AFTER INSERT
+AS
+BEGIN
+    -- Actions to perform after insert
+END
+```
+
+**Explanation:**  
+This trigger runs after a new row is inserted into `table_name`.

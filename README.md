@@ -2271,3 +2271,27 @@ END
 
 **Explanation:**  
 This trigger runs after a new row is inserted into `table_name`.
+## INDEXS
+
+Indexes are used to retrive the Data faster from the DB but the write speed will be decresed.
+**Syntax Example**
+```
+CREATE INDEX sales on DB.Sales_Orders(productID)
+```
+There are 2 Types of Index in SQL:`Clustered`(ONLY IN POSTGRES),`Nonclustered` where they make the files in retriveing style
+additionaly we have `rowstore` and `columnstore` to better handle our data.
+for alternative methods we to use `unqiue` and `filter` method(Where in Index creation)
+
+**Syntax Example**
+```
+CREATE unique Cluster INDEX sales on DB.Sales_Orders(productID)
+```
+
+> with the filter index and unique
+```
+CREATE unique Cluster INDEX sales on DB.Sales_Orders(productID) where price>300
+```
+
+```
+CREATE unique non-Cluster columstore INDEX sales on DB.Sales_Orders(productID)
+```
